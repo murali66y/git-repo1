@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="f9539385-0ed0-404b-a513-83b87e3f76e7" >
+		<http:listener-connection host="0.0.0.0" port="${http.port}" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="ffe407ef-4230-44f0-aefe-0ff4a18a1f00" />
+	<api-gateway:autodiscovery apiId="19089530" ignoreBasePath="true" doc:name="API Autodiscovery" doc:id="9ca935a0-9fca-47d2-9ef5-154482139069" flowRef="myfirstapiFlow" />
+	<flow name="myfirstapiFlow" doc:id="da2c278d-4bc1-4043-8198-eebe50682739" >
+		<http:listener doc:name="Listener" doc:id="66c4db1a-d940-4c05-9427-537e18c1b518" config-ref="HTTP_Listener_config" path="/createAccount"/>
+		<ee:transform doc:name="Transform Message" doc:id="424c8c51-7b25-4bdf-b316-996834cef1f5" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[//%dw 2.0
+//output application/xml
+//---
+
+// details : payload
+%dw 2.0
+output application/json
+
+//fun resultcheck(a) = if(a>60) "pass" else "fail"
+---
+/*payload map {
+    "name": $.name,
+    "maths Result": resultcheck($.Maths),
+    "social Result": resultcheck($.social)
+}*/
+// payload reduce($ ++ $$)
+//payload flatten($$ ++ $)
+
+payload map ((index,value) ->{
+    "name" : index.name,
+    "branch" : index.Branch map {
+        "Subjectname" : $,
+        "description" : index.name ++ " is studying in " ++ $
+    },
+    "rollno" : index.name ++ "-" ++ index.ID,
+    "college" : index.College
+
+
+})
+
+]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="name" ><![CDATA[attributes.queryParams.technology ++ " " ++ attributes.queryParams.name]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="5a7f2d12-766c-418d-a949-fe9995976eee" message='#["We got the student details "]'/>
+	</flow>
+</mule>
